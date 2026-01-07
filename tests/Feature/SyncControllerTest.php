@@ -19,13 +19,13 @@ class SyncControllerTest extends TestCase
         $payload = [
             'messages' => [
                 [
-                    'local_message_id' => '\\' . uniqid('', true),
+                    'local_message_id' => (string) \Illuminate\Support\Str::uuid(),
                     'sender_device_id' => $deviceId,
                     'content' => 'Test SOS',
                     'latitude' => 1.23,
                     'longitude' => 4.56,
                     'status' => 'ACTIVE',
-                    'occurred_at' => now()->toIso8601String(),
+                    'occurred_at' => now()->format('Y-m-d\\TH:i:s.u\\Z'),
                 ]
             ]
         ];
@@ -56,13 +56,13 @@ class SyncControllerTest extends TestCase
         $payload = [
             'messages' => [
                 [
-                    'local_message_id' => '\\' . uniqid('', true),
+                    'local_message_id' => (string) \Illuminate\Support\Str::uuid(),
                     'sender_device_id' => $placeholder,
                     'content' => 'BLE SOS',
                     'latitude' => 0.1,
                     'longitude' => 0.2,
                     'status' => 'ACTIVE',
-                    'occurred_at' => now()->toIso8601String(),
+                    'occurred_at' => now()->format('Y-m-d\\TH:i:s.u\\Z'),
                 ]
             ]
         ];
@@ -75,5 +75,27 @@ class SyncControllerTest extends TestCase
             'sender_device_id' => $deviceId,
             'sender_crc' => $crc,
         ]);
+    }
+
+    public function test_download_with_since_milliseconds_returns_ok()
+    {
+        // Seed a message
+        $msg = SOSMessage::create([
+            'local_message_id' => (string) \Illuminate\Support\Str::uuid(),
+            'sender_device_id' => 'device-download',
+            'content' => 'Hello',
+            'latitude' => 1.0,
+            'longitude' => 2.0,
+            'status' => 'ACTIVE',
+            'occurred_at' => now(),
+        ]);
+
+        $sinceMs = (int) (microtime(true) * 1000) - 10000; // 10s ago
+
+        $response = $this->getJson('/api/sync/download?since=' . $sinceMs);
+        $response->assertStatus(200);
+        $json = $response->json();
+        $this->assertArrayHasKey('messages', $json);
+        $this->assertArrayHasKey('ack_data', $json);
     }
 }

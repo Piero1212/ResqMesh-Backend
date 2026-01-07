@@ -152,11 +152,26 @@ class SyncController extends Controller
             return response()->json(['message' => 'Missing "since" timestamp parameter.'], 400);
         }
 
-        $since = (int) $request->query('since');
+        $sinceRaw = $request->query('since');
 
+        // Normalize 'since' to a Carbon datetime. Accept integer ms since epoch or ISO string.
         try {
-            $messages = SOSMessage::where('updated_at', '>', $since)
-                                ->orWhere('created_at', '>', $since)
+            if (is_numeric($sinceRaw)) {
+                // Treat as milliseconds since epoch
+                $sinceMs = (int) $sinceRaw;
+                // Use Carbon to construct a datetime from milliseconds
+                if (method_exists(\Carbon\Carbon::class, 'createFromTimestampMs')) {
+                    $sinceDt = Carbon::createFromTimestampMs($sinceMs);
+                } else {
+                    $sinceDt = Carbon::createFromTimestamp((int) floor($sinceMs / 1000));
+                }
+            } else {
+                // Parse as ISO 8601 string
+                $sinceDt = Carbon::parse($sinceRaw);
+            }
+
+            $messages = SOSMessage::where('updated_at', '>', $sinceDt)
+                                ->orWhere('created_at', '>', $sinceDt)
                                 ->orderBy('updated_at', 'asc')
                                 ->get();
 
