@@ -22,6 +22,8 @@ class SOSMessage extends Model
         'status',
         'occurred_at',
         'updated_at', // Allow updated_at to be mass-assigned
+        'sender_crc',
+        'from_server',
     ];
 
     /**
@@ -33,5 +35,7 @@ class SOSMessage extends Model
         'latitude' => 'double',
         'longitude' => 'double',
         'occurred_at' => 'datetime',
+        'from_server' => 'boolean',
+        'sender_crc' => 'integer',
     ];
 }
